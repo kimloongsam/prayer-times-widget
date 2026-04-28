@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Labuan Prayer Time</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #ffffff;
+    }
+
+    .prayer-card {
+      max-width: 420px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 10px;
+      border: 1px solid #d8d8d8;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      overflow: hidden;
+    }
+
+    .header {
+      background: #2f8f46;
+      color: white;
+      padding: 14px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .date-box {
+      text-align: center;
+      padding: 10px;
+      font-size: 13px;
+      color: #333;
+      background: #f5fff7;
+      border-bottom: 1px solid #e1e1e1;
+    }
+
+    .next-prayer {
+      text-align: center;
+      padding: 12px;
+      background: #fff8e1;
+      color: #2f8f46;
+      font-weight: 700;
+    }
+
+    .times {
+      padding: 12px 18px 18px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed #ddd;
+      padding: 8px 0;
+      font-size: 15px;
+    }
+
+    .row:last-child {
+      border-bottom: none;
+    }
+
+    .name {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .time {
+      font-weight: 700;
+      color: #111;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: #777;
+      padding: 10px;
+      background: #f7f7f7;
+    }
+
+    .error {
+      padding: 20px;
+      text-align: center;
+      color: #b00020;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="prayer-card">
+    <div class="header">Labuan Prayer Time</div>
+
+    <div class="date-box" id="dateBox">
+      Loading date...
+    </div>
+
+    <div class="next-prayer" id="nextPrayer">
+      Loading next prayer...
+    </div>
+
+    <div class="times" id="prayerTimes">
+      Loading prayer times...
+    </div>
+
+    <div class="footer">
+      Zone: WLY02 - Labuan | Source: e-Solat JAKIM
+    </div>
+  </div>
+
+  <script>
+    const apiUrl = "https://www.e-solat.gov.my/index.php?r=esolatApi/takwimsolat&period=today&zone=WLY02";
+
+    const prayerLabels = {
+      imsak: "Imsak",
+      fajr: "Subuh",
+      syuruk: "Syuruk",
+      dhuhr: "Zohor",
+      asr: "Asar",
+      maghrib: "Maghrib",
+      isha: "Isyak"
+    };
+
+    function convertToMinutes(timeText) {
+      const parts = timeText.split(":");
+      return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    }
+
+    function findNextPrayer(prayer) {
+      const now = new Date();
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+      const order = ["fajr", "dhuhr", "asr", "maghrib", "isha"];
+
+      for (const key of order) {
+        if (prayer[key]) {
+          const prayerMinutes = convertToMinutes(prayer[key]);
+          if (prayerMinutes > nowMinutes) {
+            return `${prayerLabels[key]} at ${prayer[key]}`;
+          }
+        }
+      }
+
+      return `Subuh tomorrow at ${prayer.fajr}`;
+    }
+
+    async function loadPrayerTimes() {
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        const prayer = data.prayerTime[0];
+
+        document.getElementById("dateBox").innerHTML =
+          `${prayer.date} | ${prayer.hijri}`;
+
+        document.getElementById("nextPrayer").innerHTML =
+          `Next Prayer: ${findNextPrayer(prayer)}`;
+
+        document.getElementById("prayerTimes").innerHTML = `
+          <div class="row"><span class="name">Imsak</span><span class="time">${prayer.imsak}</span></div>
+          <div class="row"><span class="name">Subuh</span><span class="time">${prayer.fajr}</span></div>
+          <div class="row"><span class="name">Syuruk</span><span class="time">${prayer.syuruk}</span></div>
+          <div class="row"><span class="name">Zohor</span><span class="time">${prayer.dhuhr}</span></div>
+          <div class="row"><span class="name">Asar</span><span class="time">${prayer.asr}</span></div>
+          <div class="row"><span class="name">Maghrib</span><span class="time">${prayer.maghrib}</span></div>
+          <div class="row"><span class="name">Isyak</span><span class="time">${prayer.isha}</span></div>
+        `;
+      } catch (error) {
+        document.getElementById("prayerTimes").innerHTML =
+          `<div class="error">Unable to load prayer time.</div>`;
+        document.getElementById("nextPrayer").innerHTML = "";
+        console.error(error);
+      }
+    }
+
+    loadPrayerTimes();
+  </script>
+</body>
+</html>
