@@ -162,9 +162,9 @@ function formatGregorianDate(dateText){
     const day = parseInt(parts[0], 10);
     const monthText = parts[1];
     const year = parseInt(parts[2], 10);
-      alert(monthText);
+
     const monthIndex = monthMap[monthText];
-      alert(monthIndex);
+
     if (monthIndex !== undefined) {
       const dateObj = new Date(year, monthIndex, day);
 
