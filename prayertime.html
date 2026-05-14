@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+body{
+  font-family: Arial, sans-serif;
+  margin:0;
+  padding:10px;
+  background:#f9f9f9;
+  display:flex;
+  justify-content:center;
+}
+
+.box{
+  border:1px solid #ddd;
+  border-radius:8px;
+  padding:15px;
+  width:100%;
+  max-width:350px;
+  margin:auto;
+  box-sizing:border-box;
+  background:#fff;
+  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+  text-align:center;
+}
+
+.city{
+  font-weight:bold;
+  font-size:16px;
+  margin-bottom:5px;
+  border:none;
+  background:transparent;
+  text-align:center;
+  text-align-last:center;
+  width:100%;
+  cursor:pointer;
+  outline:none;
+  appearance:auto;
+}
+
+.date-hijri{
+  font-size:14px;
+  margin-bottom:3px;
+  color:#555;
+}
+
+.date-greg{
+  font-size:14px;
+  margin-bottom:3px;
+  color:#fff;
+  background-color:#000;
+  padding:10px 0;
+  border-radius:8px;
+}
+
+#solat{
+  margin-top:10px;
+  text-align:left;
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  padding:4px 0;
+  border-bottom:1px dashed #eee;
+}
+
+.row:last-child{
+  border-bottom:none;
+}
+
+.prayer-title{
+  font-weight:500;
+}
+
+.prayer-time{
+  font-weight:bold;
+}
+
+.footer{
+  margin-top:12px;
+  font-size:12px;
+  color:#888;
+  text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+  <select class="city" id="city-name">
+    <option value="WLY01">Kuala Lumpur, Malaysia</option>
+    <option value="WLY02">Labuan, Malaysia</option>
+  </select>
+
+  <div class="date-hijri" id="hijri-date">Loading Hijri...</div>
+  <div class="date-greg" id="greg-date">Loading Gregorian...</div>
+
+  <div id="solat">Loading prayer times...</div>
+  
+  <div class="footer">
+    Powered by 
+    <a href="https://www.e-solat.gov.my/" target="_blank">www.e-solat.gov.my</a>
+  </div>
+</div>
+
+<script>
+const hijriMonths = [
+  "Muharram",
+  "Safar",
+  "Rabi'ul Awal",
+  "Rabi'ul Akhir",
+  "Jumadaul Ula",
+  "Jumadaul Akhira",
+  "Rejab",
+  "Sya'ban",
+  "Ramadan",
+  "Syawal",
+  "Zulkaedah",
+  "Zulhijjah"
+];
+
+function formatTime24to12(time24){
+  if (!time24) return "-";
+
+  const [h,m] = time24.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+
+  return `${hour12.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')} ${ampm}`;
+}
+
+function formatGregorianDate(dateText){
+  if (!dateText) return "-";
+
+  const monthMap = {
+    Jan: 0,
+    Feb: 1,
+    Mac: 2,
+    Mar: 2,
+    Apr: 3,
+    Mei: 4,
+    May: 4,
+    Jun: 5,
+    Jul: 6,
+    Ogos: 7,
+    Aug: 7,
+    Sep: 8,
+    Okt: 9,
+    Oct: 9,
+    Nov: 10,
+    Dis: 11,
+    Dec: 11
+  };
+
+  const parts = dateText.split("-");
+    
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const monthText = parts[1];
+    const year = parseInt(parts[2], 10);
+      alert(monthText);
+    const monthIndex = monthMap[monthText];
+      alert(monthIndex);
+    if (monthIndex !== undefined) {
+      const dateObj = new Date(year, monthIndex, day);
+
+      return dateObj.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric"
+      });
+    }
+  }
+
+  return dateText;
+}
+
+function formatHijriDate(hijriText){
+  if (!hijriText) return "-";
+
+  const [hYear, hMonth, hDay] = hijriText.split("-");
+
+  const day = parseInt(hDay, 10);
+  const monthIndex = parseInt(hMonth, 10) - 1;
+  const monthName = hijriMonths[monthIndex] || "";
+
+  return `${day}th ${monthName}, ${hYear}h`;
+}
+
+function loadPrayerTime(zone){
+  document.getElementById("hijri-date").innerText = "Loading Hijri...";
+  document.getElementById("greg-date").innerText = "Loading Gregorian...";
+  document.getElementById("solat").innerHTML = "Loading prayer times...";
+
+  fetch(`https://www.e-solat.gov.my/index.php?r=esolatApi/takwimsolat&zone=${zone}&period=today`)
+  .then(res => res.json())
+  .then(data => {
+    if (!data.prayerTime || data.prayerTime.length === 0) {
+      throw new Error("No prayer time data found");
+    }
+
+    const t = data.prayerTime[0];
+
+    document.getElementById("hijri-date").innerText = formatHijriDate(t.hijri);
+    document.getElementById("greg-date").innerText = formatGregorianDate(t.date);
+
+    document.getElementById("solat").innerHTML = `
+      <div class="row"><span class="prayer-title">Subuh</span><span class="prayer-time">${formatTime24to12(t.fajr)}</span></div>
+      <div class="row"><span class="prayer-title">Dhuha</span><span class="prayer-time">${formatTime24to12(t.dhuha)}</span></div>
+      <div class="row"><span class="prayer-title">Zohor</span><span class="prayer-time">${formatTime24to12(t.dhuhr)}</span></div>
+      <div class="row"><span class="prayer-title">Asar</span><span class="prayer-time">${formatTime24to12(t.asr)}</span></div>
+      <div class="row"><span class="prayer-title">Maghrib</span><span class="prayer-time">${formatTime24to12(t.maghrib)}</span></div>
+      <div class="row"><span class="prayer-title">Isyak</span><span class="prayer-time">${formatTime24to12(t.isha)}</span></div>
+    `;
+  })
+  .catch(error => {
+    document.getElementById("hijri-date").innerText = "";
+    document.getElementById("greg-date").innerText = "Unable to load";
+    document.getElementById("solat").innerHTML = "Unable to load prayer times.";
+    console.error(error);
+  });
+}
+
+const cityDropdown = document.getElementById("city-name");
+
+cityDropdown.addEventListener("change", function(){
+  loadPrayerTime(this.value);
+});
+
+loadPrayerTime("WLY01");
+</script>
+
+</body>
+</html>
